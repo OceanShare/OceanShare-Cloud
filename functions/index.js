@@ -10,20 +10,17 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-exports.deleteOldItems = functions.database.ref('/markers/{pushId}')
-.onWrite((change, context) => {
-  var ref = change.after.ref.parent; // reference to the items
-  var now = Date.now();
-  //var cutoff = now - 15 * 60 * 1000;
-  var cutoff = now - 15 * 60 * 1000
-  var oldItemsQuery = ref.orderByChild('timestamp').endAt(cutoff);
-  return oldItemsQuery.once('value', function(snapshot) {
-    // create a map with all children that need to be removed
-    var updates = {};
-    snapshot.forEach(function(child) {
-      updates[child.key] = null
-    });
-    // execute all updates in one go and return the result to end the function
-    return ref.update(updates);
+exports.deleteOldItems = functions.database.ref('/markers/{pushId}').onWrite(async (change) => {
+  const ref = change.after.ref.parent; // reference to the parent
+  const now = Date.now();
+  var cutoff = now - 15 * 60 * 1000;
+  const oldItemsQuery = ref.orderByChild('timestamp').endAt(cutoff);
+  const snapshot = await oldItemsQuery.once('value');
+  // create a map with all children that need to be removed
+  const updates = {};
+  snapshot.forEach(child => {
+    updates[child.key] = null;
   });
+  // execute all updates in one go and return the result to end the function
+  return ref.update(updates);
 });
